@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BI Aniversariantes — Caixa (Dark)</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+    :root {
+        --bg-principal: #0d1117;
+        --bg-secundario: #161b22;
+        --bg-card: #1c2128;
+        --bg-elevado: #21262d;
+        --borda-sutil: #30363d;
+        --borda-media: #3d444d;
+        --azul-caixa: #1f6feb;
+        --azul-brilho: #58a6ff;
+        --azul-escuro: #0d419d;
+        --laranja-caixa: #ff9a00;
+        --laranja-brilho: #ffb84d;
+        --verde-caixa: #2ea043;
+        --verde-brilho: #56d364;
+        --roxo: #a371f7;
+        --vermelho: #f85149;
+        --ciano: #39c5cf;
+        --texto-principal: #e6edf3;
+        --texto-secundario: #8b949e;
+        --texto-terciario: #6e7681;
+        --sombra: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; }
+    body {
+        background: var(--bg-principal);
+        background-image:
+            radial-gradient(circle at 15% 0%, rgba(31,111,235,0.08) 0%, transparent 45%),
+            radial-gradient(circle at 85% 100%, rgba(255,154,0,0.06) 0%, transparent 45%);
+        background-attachment: fixed;
+        min-height: 100vh;
+        color: var(--texto-principal);
+    }
+    .topbar {
+        background: rgba(22, 27, 34, 0.85);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border-bottom: 1px solid var(--borda-sutil);
+        color: #fff;
+        padding: 16px 32px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 16px; }
+    .logo-caixa { height: 46px; filter: drop-shadow(0 0 12px rgba(31,111,235,0.5)); }
+    .topbar h1 {
+        font-size: 1.3rem; font-weight: 700;
+        background: linear-gradient(90deg, #e6edf3 0%, var(--azul-brilho) 100%);
+        -webkit-background-clip: text; background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .topbar .sub { font-size: 0.8rem; color: var(--laranja-caixa); margin-top: 2px; letter-spacing: 0.4px; }
+    .topbar-right { display: flex; align-items: center; gap: 14px; }
+    .badge-data {
+        background: var(--bg-elevado);
+        border: 1px solid var(--borda-sutil);
+        padding: 8px 14px; border-radius: 30px;
+        font-size: 0.85rem; font-weight: 600;
+        color: var(--texto-principal);
+    }
+    .btn-atualizar {
+        background: linear-gradient(135deg, var(--laranja-caixa) 0%, #d97e00 100%);
+        color: #0d1117;
+        border: none; padding: 10px 18px; border-radius: 8px;
+        font-weight: 800; cursor: pointer; transition: .25s;
+        font-size: 0.9rem;
+        box-shadow: 0 4px 14px rgba(255,154,0,0.3);
+    }
+    .btn-atualizar:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255,154,0,0.45); filter: brightness(1.08); }
+    .btn-atualizar:disabled { background: #30363d; color: #6e7681; cursor: not-allowed; transform: none; box-shadow: none; }
+    .container { max-width: 1400px; margin: 0 auto; padding: 28px 24px 60px; }
+
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-bottom: 28px; }
+    .kpi-card {
+        background: linear-gradient(160deg, var(--bg-card) 0%, var(--bg-secundario) 100%);
+        border: 1px solid var(--borda-sutil);
+        border-radius: 16px;
+        padding: 20px 22px;
+        position: relative;
+        overflow: hidden;
+        transition: transform .3s ease, border-color .3s ease;
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        min-height: 110px;
+    }
+    .kpi-card:hover { transform: translateY(-5px); border-color: var(--borda-media); }
+    .kpi-card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 100% 0%, currentColor 0%, transparent 55%);
+        opacity: 0.10;
+        pointer-events: none;
+        transition: opacity .3s ease;
+    }
+    .kpi-card:hover::before { opacity: 0.20; }
+
+    .kpi-icon-wrap {
+        width: 68px;
+        height: 68px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        flex-shrink: 0;
+        position: relative;
+        transition: transform .3s ease;
+        color: #fff;
+    }
+    .kpi-card:hover .kpi-icon-wrap { transform: scale(1.08) rotate(-4deg); }
+    .kpi-icon-wrap::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: linear-gradient(135deg, rgba(255,255,255,0.25) 0%, transparent 55%);
+        pointer-events: none;
+    }
+    .kpi-card.azul { color: var(--azul-brilho); }
+    .kpi-card.azul .kpi-icon-wrap {
+        background: linear-gradient(135deg, var(--azul-caixa) 0%, var(--azul-escuro) 100%);
+        box-shadow: 0 0 24px rgba(31,111,235,0.55), inset 0 0 12px rgba(88,166,255,0.35);
+    }
+    .kpi-card.laranja { color: var(--laranja-brilho); }
+    .kpi-card.laranja .kpi-icon-wrap {
+        background: linear-gradient(135deg, var(--laranja-caixa) 0%, #b36b00 100%);
+        box-shadow: 0 0 24px rgba(255,154,0,0.55), inset 0 0 12px rgba(255,184,77,0.4);
+    }
+    .kpi-card.verde { color: var(--verde-brilho); }
+    .kpi-card.verde .kpi-icon-wrap {
+        background: linear-gradient(135deg, var(--verde-caixa) 0%, #1a7f37 100%);
+        box-shadow: 0 0 24px rgba(46,160,67,0.55), inset 0 0 12px rgba(86,211,100,0.35);
+    }
+    .kpi-card.roxo { color: var(--roxo); }
+    .kpi-card.roxo .kpi-icon-wrap {
+        background: linear-gradient(135deg, var(--roxo) 0%, #6d3fc4 100%);
+        box-shadow: 0 0 24px rgba(163,113,247,0.55), inset 0 0 12px rgba(163,113,247,0.4);
+    }
+    .kpi-card.vermelho { color: var(--vermelho); }
+    .kpi-card.vermelho .kpi-icon-wrap {
+        background: linear-gradient(135deg, var(--vermelho) 0%, #b3261e 100%);
+        box-shadow: 0 0 24px rgba(248,81,73,0.55), inset 0 0 12px rgba(248,81,73,0.4);
+        animation: pulseGlowRed 2.4s ease-in-out infinite;
+    }
+    @keyframes pulseGlowRed {
+        0%, 100% { box-shadow: 0 0 24px rgba(248,81,73,0.55), inset 0 0 12px rgba(248,81,73,0.4); }
+        50%      { box-shadow: 0 0 38px rgba(248,81,73,0.85), inset 0 0 16px rgba(248,81,73,0.6); }
+    }
+
+    .kpi-body { flex: 1; min-width: 0; }
+    .kpi-label {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--texto-secundario);
+        font-weight: 700;
+        margin-bottom: 6px;
+    }
+    .kpi-value {
+        font-size: 2.05rem;
+        font-weight: 800;
+        color: var(--texto-principal);
+        line-height: 1.1;
+    }
+    .kpi-value.small { font-size: 1.45rem; }
+    .kpi-sub { font-size: 0.78rem; color: var(--texto-terciario); margin-top: 4px; }
+    .kpi-corner-badge {
+        position: absolute;
+        top: 12px; right: 12px;
+        font-size: 0.65rem;
+        font-weight: 800;
+        padding: 3px 9px;
+        border-radius: 20px;
+        background: rgba(255,255,255,0.08);
+        border: 1px solid currentColor;
+        color: inherit;
+        letter-spacing: 0.5px;
+    }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+    .grid-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 24px; }
+    @media (max-width: 980px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+    .card {
+        background: linear-gradient(160deg, var(--bg-card) 0%, var(--bg-secundario) 100%);
+        border: 1px solid var(--borda-sutil);
+        border-radius: 14px;
+        padding: 22px 24px;
+        box-shadow: var(--sombra);
+        transition: border-color .25s ease;
+    }
+    .card:hover { border-color: var(--borda-media); }
+    .card h2 {
+        font-size: 1.05rem; color: var(--texto-principal);
+        margin-bottom: 18px; display: flex; align-items: center; gap: 12px;
+        font-weight: 700;
+    }
+    .card h2 .icon-badge {
+        width: 34px; height: 34px;
+        border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1rem;
+        background: linear-gradient(135deg, var(--laranja-caixa) 0%, #b36b00 100%);
+        box-shadow: 0 0 14px rgba(255,154,0,0.5);
+        flex-shrink: 0;
+    }
+    .chart-wrap { position: relative; height: 300px; }
+    .chart-wrap.tall { height: 360px; }
+
+    .proximos-lista { max-height: 360px; overflow-y: auto; padding-right: 6px; }
+    .proximo-item {
+        display: flex; align-items: center; gap: 14px;
+        padding: 12px 14px; border-radius: 10px; margin-bottom: 10px;
+        background: var(--bg-elevado); border-left: 3px solid var(--azul-caixa);
+        transition: .2s;
+    }
+    .proximo-item:hover { background: #262c34; transform: translateX(3px); }
+    .proximo-item.hoje { border-left-color: var(--verde-caixa); background: linear-gradient(90deg, rgba(46,160,67,0.12) 0%, var(--bg-elevado) 100%); }
+    .proximo-item.amanha { border-left-color: var(--laranja-caixa); background: linear-gradient(90deg, rgba(255,154,0,0.12) 0%, var(--bg-elevado) 100%); }
+    .avatar {
+        width: 44px; height: 44px; border-radius: 50%;
+        background: linear-gradient(135deg, var(--azul-caixa), var(--azul-escuro));
+        color: #fff; display: flex; align-items: center; justify-content: center;
+        font-weight: 700; font-size: 1rem; flex-shrink: 0;
+        box-shadow: 0 0 12px rgba(31,111,235,0.4);
+    }
+    .proximo-item.hoje .avatar { background: linear-gradient(135deg, var(--verde-caixa), #1a7f37); box-shadow: 0 0 12px rgba(46,160,67,0.5); }
+    .proximo-item.amanha .avatar { background: linear-gradient(135deg, var(--laranja-caixa), #d97e00); box-shadow: 0 0 12px rgba(255,154,0,0.5); }
+    .proximo-info { flex: 1; min-width: 0; }
+    .proximo-info strong { display: block; font-size: .95rem; color: var(--texto-principal); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .proximo-info span { font-size: .8rem; color: var(--texto-secundario); }
+    .proximo-dias {
+        font-size: .75rem; font-weight: 700; padding: 5px 10px; border-radius: 20px;
+        background: rgba(31,111,235,.18); color: var(--azul-brilho);
+        border: 1px solid rgba(31,111,235,.35); white-space: nowrap;
+    }
+    .proximo-dias.hoje { background: rgba(46,160,67,.18); color: var(--verde-brilho); border-color: rgba(46,160,67,.45); box-shadow: 0 0 10px rgba(46,160,67,.3); }
+    .proximo-dias.amanha { background: rgba(255,154,0,.18); color: var(--laranja-brilho); border-color: rgba(255,154,0,.45); }
+
+    .tabela-setores { width: 100%; border-collapse: collapse; }
+    .tabela-setores th {
+        text-align: left; font-size: .75rem; text-transform: uppercase; letter-spacing: .6px;
+        color: var(--texto-secundario); padding: 10px 8px;
+        border-bottom: 2px solid var(--borda-sutil); font-weight: 700;
+    }
+    .tabela-setores td { padding: 12px 8px; border-bottom: 1px solid var(--borda-sutil); font-size: .9rem; color: var(--texto-principal); }
+    .tabela-setores tr:hover td { background: rgba(31,111,235,.05); }
+    .tabela-setores tr:last-child td { border-bottom: none; }
+    .barra-mini {
+        height: 8px; border-radius: 4px;
+        background: linear-gradient(90deg, var(--azul-caixa), var(--laranja-caixa));
+        box-shadow: 0 0 10px rgba(31,111,235,.35); min-width: 4px;
+    }
+
+    .loading, .erro-box { text-align: center; padding: 60px 20px; color: var(--texto-secundario); font-size: 1rem; }
+    .erro-box { color: var(--vermelho); }
+    .loading::before {
+        content: ''; display: block; width: 42px; height: 42px; margin: 0 auto 18px;
+        border: 3px solid var(--borda-sutil); border-top-color: var(--azul-caixa);
+        border-radius: 50%; animation: spin .9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .rodape { text-align: center; padding: 24px; color: var(--texto-terciario); font-size: .82rem; }
+    .proximos-lista::-webkit-scrollbar { width: 6px; }
+    .proximos-lista::-webkit-scrollbar-track { background: var(--bg-elevado); border-radius: 3px; }
+    .proximos-lista::-webkit-scrollbar-thumb { background: var(--borda-media); border-radius: 3px; }
+    .proximos-lista::-webkit-scrollbar-thumb:hover { background: var(--azul-caixa); }
+
+    @media (max-width: 520px) {
+        .kpi-card { flex-direction: column; text-align: center; padding: 22px 16px; }
+        .kpi-icon-wrap { width: 60px; height: 60px; font-size: 1.8rem; }
+    }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+    <div class="topbar-left">
+        <img class="logo-caixa" src="logo-caixa.png" alt="Logo Caixa" onerror="this.style.display='none'">
+        <div>
+            <h1>📊 BI — Aniversariantes</h1>
+            <p class="sub">Caixa Econômica Federal · Painel Analítico</p>
+        </div>
+    </div>
+    <div class="topbar-right">
+        <div class="badge-data" id="dataAtual">—</div>
+        <button class="btn-atualizar" id="btnAtualizar">🔄 Atualizar</button>
+    </div>
+</header>
+
+<div class="container" id="conteudo">
+    <div class="loading">Carregando dados da planilha...</div>
+</div>
+
+<footer class="rodape">
+    @2026 — Desenvolvido por Paulo Poltronieri · Todos os direitos reservados.
+</footer>
+<script>
+const URL_APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbyMKGWLOWB1Ea-46XAjc4BucaXW6KeNckyB7bKg1ed9f4KBwOGEvtG0tsne8s-GKz-qqw/exec';
+
+const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const MESES_CURTOS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+const CORES = {
+    azul: '#1f6feb', azulBrilho: '#58a6ff',
+    laranja: '#ff9a00', laranjaBrilho: '#ffb84d',
+    verde: '#2ea043', verdeBrilho: '#56d364',
+    roxo: '#a371f7', vermelho: '#f85149',
+    ciano: '#39c5cf', rosa: '#f778ba', amarelo: '#e3b341'
+};
+
+function normalizarData(data) {
+    if (!data) return null;
+    const s = String(data).split('T')[0];
+    const partes = s.split('-').map(Number);
+    if (partes.length !== 3 || partes.some(isNaN)) return null;
+    return { dia: partes[2], mes: partes[1], ano: partes[0] };
+}
+function escapeHTML(v) {
+    return String(v || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function calcularIdade(anoNasc) {
+    if (!anoNasc) return null;
+    const idade = new Date().getFullYear() - anoNasc;
+    return idade > 0 && idade < 120 ? idade : null;
+}
+function iniciais(nome) {
+    const p = String(nome || '').trim().split(/\s+/);
+    if (p.length === 0) return '?';
+    if (p.length === 1) return p[0].charAt(0).toUpperCase();
+    return (p[0].charAt(0) + p[p.length - 1].charAt(0)).toUpperCase();
+}
+async function obterRegistros() {
+    const r = await fetch(URL_APPS_SCRIPT + '?t=' + Date.now(), { redirect: 'follow' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const dados = await r.json();
+    if (dados && dados.status === 'erro') throw new Error(dados.mensagem || 'Erro no Apps Script');
+    return Array.isArray(dados) ? dados : [];
+}
+
+function analisar(lista) {
+    const hoje = new Date();
+    const anoAtual = hoje.getFullYear();
+    const mesAtual = hoje.getMonth() + 1;
+    const diaAtual = hoje.getDate();
+
+    const total = lista.length;
+    let doMes = 0;
+    const porMes = Array(12).fill(0);
+    const porSetor = {};
+    const porIdade = { '18-25':0, '26-35':0, '36-45':0, '46-55':0, '56-65':0, '65+':0 };
+    const proximos = [];
+    let idadeSoma = 0, idadeCount = 0;
+    let mesMaisCheio = 0, mesMaisCheioIdx = 0;
+
+    lista.forEach(p => {
+        const d = normalizarData(p.dataNascimento);
+        if (!d) return;
+
+        porMes[d.mes - 1]++;
+        if (porMes[d.mes - 1] > mesMaisCheio) { mesMaisCheio = porMes[d.mes - 1]; mesMaisCheioIdx = d.mes - 1; }
+
+        const setor = (p.setor || 'Não informado').trim();
+        porSetor[setor] = (porSetor[setor] || 0) + 1;
+
+        const idade = calcularIdade(d.ano);
+        if (idade !== null) {
+            idadeSoma += idade; idadeCount++;
+            if (idade <= 25) porIdade['18-25']++;
+            else if (idade <= 35) porIdade['26-35']++;
+            else if (idade <= 45) porIdade['36-45']++;
+            else if (idade <= 55) porIdade['46-55']++;
+            else if (idade <= 65) porIdade['56-65']++;
+            else porIdade['65+']++;
+        }
+
+        if (d.mes === mesAtual) doMes++;
+
+        const hojeZero = new Date(anoAtual, hoje.getMonth(), diaAtual);
+        let diasFaltando = Math.round((new Date(anoAtual, d.mes - 1, d.dia) - hojeZero) / 86400000);
+        if (diasFaltando < 0) {
+            diasFaltando = Math.round((new Date(anoAtual + 1, d.mes - 1, d.dia) - hojeZero) / 86400000);
+        }
+        if (diasFaltando >= 0 && diasFaltando <= 60) {
+            proximos.push({ nome: p.nomeCompleto || 'Sem nome', setor, dia: d.dia, mes: d.mes, dias: diasFaltando });
+        }
+    });
+
+    proximos.sort((a, b) => a.dias - b.dias);
+    const idadeMedia = idadeCount ? Math.round(idadeSoma / idadeCount) : 0;
+    const topSetores = Object.entries(porSetor).sort((a, b) => b[1] - a[1]).slice(0, 8);
+
+    return {
+        total, doMes, porMes, porSetor, porIdade,
+        proximos: proximos.slice(0, 12),
+        idadeMedia,
+        mesMaisCheio: { nome: MESES[mesMaisCheioIdx], qtd: mesMaisCheio },
+        topSetores,
+        setoresCount: Object.keys(porSetor).length
+    };
+}
+
+let charts = {};
+
+function renderizar(dados) {
+    const a = analisar(dados);
+    const hoje = new Date();
+    const mesAtual = hoje.getMonth();
+
+    document.getElementById('dataAtual').textContent = `📅 ${MESES[mesAtual]} ${hoje.getFullYear()}`;
+
+    const temHoje = a.proximos.some(p => p.dias === 0);
+
+    const container = document.getElementById('conteudo');
+    container.innerHTML = `
+        <div class="kpi-grid">
+            <div class="kpi-card azul">
+                <div class="kpi-icon-wrap">👥</div>
+                <div class="kpi-body">
+                    <div class="kpi-label">Total Cadastrados</div>
+                    <div class="kpi-value">${a.total}</div>
+                    <div class="kpi-sub">aniversariantes na base</div>
+                </div>
+            </div>
+            <div class="kpi-card laranja">
+                <div class="kpi-icon-wrap">🎂</div>
+                <div class="kpi-body">
+                    <div class="kpi-label">Aniversariantes do Mês</div>
+                    <div class="kpi-value">${a.doMes}</div>
+                    <div class="kpi-sub">${MESES[mesAtual]}</div>
+                </div>
+            </div>
+            <div class="kpi-card verde">
+                <div class="kpi-icon-wrap">📈</div>
+                <div class="kpi-body">
+                    <div class="kpi-label">Mês Mais Cheio</div>
+                    <div class="kpi-value small">${a.mesMaisCheio.nome}</div>
+                    <div class="kpi-sub">${a.mesMaisCheio.qtd} aniversariantes</div>
+                </div>
+            </div>
+            <div class="kpi-card roxo">
+                <div class="kpi-icon-wrap">🎯</div>
+                <div class="kpi-body">
+                    <div class="kpi-label">Idade Média</div>
+                    <div class="kpi-value">${a.idadeMedia}<span style="font-size:1rem;"> anos</span></div>
+                    <div class="kpi-sub">${a.setoresCount} setores distintos</div>
+                </div>
+            </div>
+            <div class="kpi-card vermelho">
+                ${temHoje ? '<div class="kpi-corner-badge">HOJE</div>' : ''}
+                <div class="kpi-icon-wrap">⏰</div>
+                <div class="kpi-body">
+                    <div class="kpi-label">Próximos 60 dias</div>
+                    <div class="kpi-value">${a.proximos.length}</div>
+                    <div class="kpi-sub">aniversários a caminho</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid-3">
+            <div class="card">
+                <h2><span class="icon-badge">📊</span> Distribuição de Aniversariantes por Mês</h2>
+                <div class="chart-wrap tall"><canvas id="chartMeses"></canvas></div>
+            </div>
+            <div class="card">
+                <h2><span class="icon-badge" style="background: linear-gradient(135deg, var(--verde-caixa), #1a7f37); box-shadow: 0 0 14px rgba(46,160,67,0.5);">🎉</span> Próximos Aniversários</h2>
+                <div class="proximos-lista" id="listaProximos"></div>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h2><span class="icon-badge" style="background: linear-gradient(135deg, var(--azul-caixa), var(--azul-escuro)); box-shadow: 0 0 14px rgba(31,111,235,0.5);">🏢</span> Top Setores / Lotações</h2>
+                <div class="chart-wrap"><canvas id="chartSetores"></canvas></div>
+            </div>
+            <div class="card">
+                <h2><span class="icon-badge" style="background: linear-gradient(135deg, var(--roxo), #6d3fc4); box-shadow: 0 0 14px rgba(163,113,247,0.5);">🎯</span> Faixa Etária</h2>
+                <div class="chart-wrap"><canvas id="chartIdade"></canvas></div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom:24px;">
+            <h2><span class="icon-badge" style="background: linear-gradient(135deg, var(--vermelho), #b3261e); box-shadow: 0 0 14px rgba(248,81,73,0.5);">🏆</span> Ranking de Setores</h2>
+            <table class="tabela-setores">
+                <thead>
+                    <tr><th>#</th><th>Setor / Lotação</th><th>Qtd</th><th style="width:40%;">Proporção</th></tr>
+                </thead>
+                <tbody id="tbodySetores"></tbody>
+            </table>
+        </div>
+    `;
+
+    const listaEl = document.getElementById('listaProximos');
+    if (a.proximos.length === 0) {
+        listaEl.innerHTML = '<p style="color:var(--texto-secundario);text-align:center;padding:20px;">Nenhum aniversário nos próximos 60 dias.</p>';
+    } else {
+        listaEl.innerHTML = a.proximos.map(p => {
+            let cls = '', badge = `${p.dias}d`;
+            if (p.dias === 0) { cls = 'hoje'; badge = 'HOJE 🎉'; }
+            else if (p.dias === 1) { cls = 'amanha'; badge = 'Amanhã'; }
+            return `<div class="proximo-item ${cls}">
+                <div class="avatar">${iniciais(p.nome)}</div>
+                <div class="proximo-info">
+                    <strong>${escapeHTML(p.nome)}</strong>
+                    <span>🎂 ${String(p.dia).padStart(2,'0')}/${String(p.mes).padStart(2,'0')} · ${escapeHTML(p.setor)}</span>
+                </div>
+                <div class="proximo-dias ${cls}">${badge}</div>
+            </div>`;
+        }).join('');
+    }
+
+    const tbody = document.getElementById('tbodySetores');
+    const maxSetor = a.topSetores.length ? a.topSetores[0][1] : 1;
+    tbody.innerHTML = a.topSetores.map((s, i) => `
+        <tr>
+            <td><strong style="color:var(--azul-brilho);">${i+1}º</strong></td>
+            <td>${escapeHTML(s[0])}</td>
+            <td><strong>${s[1]}</strong></td>
+            <td><div class="barra-mini" style="width:${(s[1]/maxSetor*100).toFixed(1)}%"></div></td>
+        </tr>
+    `).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--texto-secundario);">Sem dados de setor</td></tr>';
+
+    renderGraficos(a, mesAtual);
+}
+
+function renderGraficos(a, mesAtual) {
+    Object.values(charts).forEach(c => c.destroy());
+    charts = {};
+
+    const gridColor = 'rgba(48, 54, 61, 0.5)';
+    const textColor = '#8b949e';
+
+    const corMesAtual = MESES.map((_, i) => i === mesAtual ? CORES.laranja : CORES.azul);
+    const corMesAtualHover = MESES.map((_, i) => i === mesAtual ? CORES.laranjaBrilho : CORES.azulBrilho);
+
+    charts.meses = new Chart(document.getElementById('chartMeses'), {
+        type: 'bar',
+        data: {
+            labels: MESES_CURTOS,
+            datasets: [{
+                label: 'Aniversariantes',
+                data: a.porMes,
+                backgroundColor: corMesAtual,
+                hoverBackgroundColor: corMesAtualHover,
+                borderRadius: 6,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1c2128',
+                    borderColor: '#30363d',
+                    borderWidth: 1,
+                    titleColor: '#e6edf3',
+                    bodyColor: '#e6edf3',
+                    padding: 12,
+                    cornerRadius: 8,
+                    displayColors: false,
+                    callbacks: {
+                        title: (items) => MESES[items[0].dataIndex],
+                        label: (c) => ` ${c.parsed.y} aniversariante(s)`
+                    }
+                }
+            },
+            scales: {
+                y: { beginAtZero: true, ticks: { precision: 0, color: textColor, font: { size: 11 } }, grid: { color: gridColor, drawBorder: false }, border: { display: false } },
+                x: { ticks: { color: textColor, font: { size: 11 } }, grid: { display: false }, border: { display: false } }
+            }
+        }
+    });
+
+    const paletteDark = [CORES.azul, CORES.laranja, CORES.verde, CORES.roxo, CORES.vermelho, CORES.ciano, CORES.rosa, CORES.amarelo];
+
+    charts.setores = new Chart(document.getElementById('chartSetores'), {
+        type: 'doughnut',
+        data: {
+            labels: a.topSetores.map(s => s[0]),
+            datasets: [{
+                data: a.topSetores.map(s => s[1]),
+                backgroundColor: paletteDark,
+                borderWidth: 3,
+                borderColor: '#1c2128',
+                hoverBorderColor: '#e6edf3',
+                hoverOffset: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '58%',
+            plugins: {
+                legend: { position: 'right', labels: { boxWidth: 12, boxHeight: 12, color: textColor, font: { size: 11 }, padding: 10 } },
+                tooltip: {
+                    backgroundColor: '#1c2128',
+                    borderColor: '#30363d',
+                    borderWidth: 1,
+                    titleColor: '#e6edf3',
+                    bodyColor: '#e6edf3',
+                    padding: 12,
+                    cornerRadius: 8,
+                    callbacks: { label: (c) => ` ${c.label}: ${c.parsed}` }
+                }
+            }
+        }
+    });
+
+    const faixas = ['18-25','26-35','36-45','46-55','56-65','65+'];
+    const faixaData = faixas.map(f => a.porIdade[f]);
+
+    charts.idade = new Chart(document.getElementById('chartIdade'), {
+        type: 'polarArea',
+        data: {
+            labels: faixas.map(f => f + ' anos'),
+            datasets: [{
+                data: faixaData,
+                backgroundColor: [
+                    'rgba(31,111,235,0.75)',
+                    'rgba(255,154,0,0.75)',
+                    'rgba(46,160,67,0.75)',
+                    'rgba(163,113,247,0.75)',
+                    'rgba(248,81,73,0.75)',
+                    'rgba(57,197,207,0.75)'
+                ],
+                borderColor: '#1c2128',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'right', labels: { boxWidth: 12, boxHeight: 12, color: textColor, font: { size: 11 }, padding: 10 } },
+                tooltip: {
+                    backgroundColor: '#1c2128',
+                    borderColor: '#30363d',
+                    borderWidth: 1,
+                    titleColor: '#e6edf3',
+                    bodyColor: '#e6edf3',
+                    padding: 12,
+                    cornerRadius: 8
+                }
+            },
+            scales: {
+                r: {
+                    ticks: { display: false, color: textColor },
+                    grid: { color: gridColor },
+                    angleLines: { color: gridColor }
+                }
+            }
+        }
+    });
+}
+
+async function carregar() {
+    const btn = document.getElementById('btnAtualizar');
+    btn.disabled = true;
+    btn.textContent = '⏳ Carregando...';
+
+    try {
+        const dados = await obterRegistros();
+        if (!dados.length) {
+            document.getElementById('conteudo').innerHTML = '<div class="loading">📭 Nenhum registro encontrado na planilha.</div>';
+        } else {
+            renderizar(dados);
+        }
+    } catch (err) {
+        console.error(err);
+        document.getElementById('conteudo').innerHTML = `
+            <div class="erro-box">
+                ❌ Não foi possível carregar os dados.<br>
+                <small>${escapeHTML(err.message)}</small><br><br>
+                <small>Verifique a URL do Apps Script e se ele foi reimplantado com a função doGet.</small>
+            </div>`;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '🔄 Atualizar';
+    }
+}
+
+document.getElementById('btnAtualizar').addEventListener('click', carregar);
+setInterval(carregar, 5 * 60 * 1000);
+carregar();
+</script>
+</body>
+</html>
